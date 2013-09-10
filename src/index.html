@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Promises Presentation - Introduction</title>
+    <link href='http://fonts.googleapis.com/css?family=Open+Sans:300italic,400,300,600' rel='stylesheet' type='text/css'>
+    <link href="components.css" rel="stylesheet" type="text/css">
+    <link href="styles.css" rel="stylesheet" type="text/css">
+  </head>
+  <body class="impress-not-supported">
+
+    <div style="height: 100%;"></div>
+      
+    <div id="impress" data-transition-duration="700">
+
+<div id="index" class="step slide with-brackets master-title-bullets"
+     data-off-x="0" data-z="0" data-width="1300"
+     data-scale="8">
+  <div class="title top"><div><div>
+    <h1 style="display:none;">Thanks!</h1>
+  </div></div></div>
+
+  <div class="small co"><div><div>
+    Dr. David Rodenas / <a href="https://twitter.com/drpicox" target="_blank">@drpicox</a> / <a href="http://david-rodenas.com" target="_blank">david-rodenas.com</a>
+  </div></div></div>
+</div>
+
+
+<!-- ===
+  -- == TITLE
+  -- ========================================================= -->
+<div id="title" class="step slide with-light master-photo-title"
+     data-x="0" 
+     data-y="-2000"
+     data-rotate-x="0" data-rotate-y="0" data-rotate-z="0">
+  
+  <div class="photo"><div><div>
+    <img src="images/promises.svg">
+  </div></div></div>
+
+  <div class="title with-subtitle"><div><div>
+    <h1>Introduction to Promises</h1>
+    <h3>put order in your callbacks mess</h3>
+  </div></div></div>
+  
+  <div class="by"><div><div>
+    Dr. David Rodenas 
+    <br>
+    <a href="https://twitter.com/drpicox" target="_blank">@drpicox</a>
+  </div></div></div>
+</div><!-- end #home -->
+
+<div id="my-first" class="step slide with-brackets master-title-2rows"
+     data-off-scale="1.5"
+     data-off-x="-1500" 
+     data-off-y=" 1000" 
+     >
+  <div class="title"><div><div>
+    <h1>My first day in NodeJS</h1>
+  </div></div></div>
+  <div class="row top"><div><div>
+    SOURCE CODE
+  </div></div></div>
+  <div class="row top"><div><div>
+    MY OBJECTIVE
+  </div></div></div>
+</div>
+
+<div id="my-first-source" class="step"
+     data-off-ref="my-first"
+     data-off-scale="0.15"
+     data-off-x="-2000"
+     data-off-y="-100"
+     >
+  <pre class="prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  req.facebook.app(function(err, app) {
+    req.facebook.me(function(user) {
+      res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       app,
+        user:      user
+      });
+    });
+  });
+}
+  </code></pre>
+<p>
+  Ok, two nested functions just to get data.
+</p>
+</div>
+<div class="step" data-off-x="1200">
+  <p>My mind does something like...</p>
+  <pre class="prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  <em>app  =</em> req.facebook.app<so>(function(err, app) {</so>
+  <em>user =</em> req.facebook.me<so>(function(user) {</so>
+  res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       app,
+        user:      user
+  });
+  <so>});</so>
+  <so>});</so>
+}
+  </code></pre>
+  <p>note that app and user could be obtained in parallel (concurrently)</p>
+</div>
+<div class="step" data-off-x="1200">
+  <p>But... same file some lines later...</p>
+</div>
+<div class="step" data-off-x="1200">
+  <pre class="small prettyprint"><code class="language-javascript">
+function handle_facebook_request(req, res) {
+
+  // if the user is logged in
+  if (req.facebook.token) {
+
+    async.parallel([
+      function(cb) {
+        // query 4 friends and send them to the socket for this socket id
+        req.facebook.get('/me/friends', { limit: 4 }, function(friends) {
+          req.friends = friends;
+          cb();
+        });
+      },
+      ...
+      function(cb) {
+        // use fql to get a list of my friends that are using this app
+        req.facebook.fql('SELECT uid, name, is_app_user, pic_square FROM user WHERE uid in (SELECT uid2 FROM friend WHERE uid1 = me()) AND is_app_user = 1', function(result) {
+          req.friends_using_app = result;
+          cb();
+        });
+      }
+    ], function() {
+      render_page(req, res);
+    });
+
+  } else {
+    render_page(req, res);
+  }
+}
+</code></pre>
+</div>
+<div class="step appear delay-1s" data-off-z="0" data-off-scale="0.7"
+     data-transition-duration="100">
+  <div class="stamp">WTF!!!</div>
+</div>
+
+
+<div id="my-first-objective" class="step"
+     data-off-ref="my-first"></div>
+
+<div class="step"
+     data-off-scale="0.15"
+     data-off-x="-2000"
+     data-off-y="1300"
+     >
+  <h2>      I wanted to include eltanin-eye 
+      <img class="inline" src="images/eltanin.svg">
+      <br>
+      <small><small>(a Facebook profile based recommender)</small></small>
+  </h2>
+  <br>
+  <ul class="large bullets">
+    <li>
+      I needed to query some Facebook data
+    </li>
+    <li>
+      I needed to send data to eltanin
+    </li>
+    <li>
+      I needed to receive recommendations from eltanin
+    </li>
+    <li>
+      I needed to add more information to page rendering
+    </li>
+  </ul>
+</div>
+
+<div class="step" data-off-x="1200">
+  <p>Send info to eltanin:</p>
+  <pre class="prettyprint"><code class="language-javascript">
+function handle_facebook_request_eltanin(req, res, me) {
+  eltanin.w('users').w(me).w('social/fb').put(
+      {fb_id:me, token:req.facebook.token}
+      ).on('complete', function() {
+        handle_facebook_request(req, res, me);
+  });    
+}
+  </code></pre>
+</div>
+<div class="step" data-off-x="1200">
+  <p>More info to render:</p>
+  <pre class="small prettyprint"><code class="language-javascript">
+function handle_facebook_request(req, res, me) {
+
+  // if the user is logged in
+  if (req.facebook.token) {
+
+    async.parallel([
+    ...
+      function(cb) {
+        // = request product recommendations of the current person
+        eltanin.w('users').w(me).w('recommendations')
+            .q('limit',50).get().on('complete', function(data) {
+          req.recommendations = data;
+          cb();
+        });
+      },
+    ...
+    ], function() {
+      render_page(req, res);
+    });
+
+  } else {
+    render_page(req, res);
+  }
+
+}
+  </code></pre>  
+</div>
+<div class="step" data-off-x="1200">
+  <p>
+    But... <br>
+    when I finished... 
+    and I get it running... 
+    running fast... <br>
+    my feeling was...
+  </p>
+</div>
+<div class="step slide photo delay-1s fade-in" 
+     data-off-y="0">
+  <div class="photo centered"><div><div>
+    <img src="images/crap.jpg">
+  </div></div></div>
+</div>
+
+<div id="my-reflexion" class="step slide with-brackets master-title-2rows"
+     data-off-ref="my-first"
+     data-off-y=" 1000" 
+     >
+  <div class="title"><div><div>
+    <h1>My reflexion about JS</h1>
+  </div></div></div>
+  <div class="row top"><div><div>
+    PROBLEMS
+  </div></div></div>
+  <div class="row top"><div><div>
+    DESIRES
+  </div></div></div>
+</div>
+<div id="my-reflexion-problems" class="step slide master-title-2columns"
+     data-off-ref="my-reflexion"
+     data-off-scale="0.15"
+     data-off-x="-2000"
+     data-off-y="-100"
+     >
+  <div class="title"><div><div>
+    <h1>Explicit parallelism</h1>    
+  </div></div></div>
+  <div class="column"><div><div>
+    <ul class="bullets">
+      <li>When to wait?</li>
+      <li>When to be concurrent?</li>
+      <li>We have the best concurrency?</li>
+    </ul>
+  </div></div></div>
+  <div class="column"><div><div>
+    <pre class="small prettyprint"><code class="language-javascript">
+async.parallel([
+    function(cb) {
+      ...
+    }, ...
+]);
+
+async.series([
+    function(cb) {
+      ...
+    }, ...
+]);
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-2columns"
+     data-off-x="1200">
+  <div class="title"><div><div>
+    <h1>Error prone</h1>    
+  </div></div></div>
+  <div class="column"><div><div>
+    <ul class="bullets">
+      <li>What if I forget a cb()?</li>
+      <li>What about exceptions?</li>
+      <li>
+        What if we mistake parellelism?
+        <br><small>(very difficult to debug)</small>
+      </li>
+    </ul>
+  </div></div></div>
+  <div class="column"><div><div>
+    <pre class="small prettyprint"><code class="language-javascript">
+function getUsersLikes(cb) {
+  $get("/users", function (users) {
+    var result = 0, finisheds = 0;
+    function finished() {
+      if (++finisheds===users.length){
+        cb(result);
+    } }
+    users.forEach(function (user) {
+      $get("/users/"+user+"/likes", 
+          function(likes) {
+        result += likes; 
+        finished();
+  });});});
+}
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-2columns"
+     data-off-x="1200">
+  <div class="title"><div><div>
+    <h1>Software Engineering</h1>    
+  </div></div></div>
+  <div class="column"><div><div>
+    <ul class="largge bullets">
+      <li>Data can be reused quickly?</li>
+      <li>Complex method signatures?</li>
+      <li>Is there a chain of responsability?</li>
+      <li>It's easily composable?</li>
+      </li>
+    </ul>
+    <br>
+    <p>Callbacks are good for events, <br>
+      but to get data are not suitable.</p>
+  </div></div></div>
+  <div class="column"><div><div>
+  <pre class="small prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  req.facebook.app(function(err,app){
+    req.facebook.me(function(user) {
+      res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       app,
+        user:      user
+      });
+    });
+  });
+}
+  </code></pre>
+  </div></div></div>
+</div>
+
+
+<div id="my-reflexion-desires" class="step"
+     data-off-ref="my-reflexion"></div>
+
+<div class="step slide master-title-1rows"
+     data-off-scale="0.15"
+     data-off-x="-2000"
+     data-off-y="1300"
+     >
+  <div class="title"><div><div>
+    <h1>Code like Always</h1>
+  </div></div></div>
+  <div class="row"><div><div>
+   <pre class="prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  var app  = req.facebook.app();
+  var user = req.facebook.me();
+  res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       app,
+        user:      user
+  });
+}
+   </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-1rows"
+     data-off-x="1200">
+  <div class="title"><div><div>
+    <h1>Error handling</h1>
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+function handle_request(req, res) {
+  try {
+    render_page(req, res);
+  } catch(err) {
+    handle_error(err);
+  }
+}
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-1rows"
+     data-off-x="1200">
+  <div class="title"><div><div>
+    <h1>Implicit parallelism</h1>
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  var app  = req.facebook.app(); // start getting app
+  var user = req.facebook.me();  // start getting user
+  res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       app,      // uses app, waits for app
+        user:      user      // uses user, waits for user
+  });
+}
+    </code></pre>
+  </div></div></div>
+</div>
+
+<div class="step" data-off-ref="title" id="promises">
+</div>
+
+<div class="step slide master-title-photo"
+     data-off-y="1000">
+  
+  <div class="title"><div><div>
+    <h2>Un-inverts the chain of responsability:</h2>
+    <h3>instead of calling a passed callback, returns a promise.</h3>
+  </div></div></div>
+  <div class="photo centered"><div><div>
+    <img class="photo" src="images/promise.jpg">
+  </div></div></div>
+  
+</div>
+
+<div class="step slide master-2rows"
+     data-off-y="1000">
+  
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+      getWithCallback(resource, function (result) {
+        doSomething(result);
+      });
+    </code></pre>
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+      var promise = getWithPromise(resource);
+      promise.then(function (result) {
+        doSomething(result);
+      });
+    </code></pre>
+    <p class="delay-2s fade-in">
+      It seems simple, right?
+      May be too simple to be useful?
+      Let's see an example.
+    </p>
+  </div></div></div>
+  
+</div>
+
+<div class="step"
+     data-off-y="1000">
+  
+  <pre class="prettyprint"><code class="language-javascript">
+function render_page(req, res) {
+  var app = getFacebookApp();
+  var me  = getFacebookMe();
+  Q.all([app, me], function (results) {
+    res.render('index.ejs', {
+        layout:    false,
+        req:       req,
+        app:       results[0],  // apps
+        user:      results[1]   // me
+    });    
+  });
+}
+  </code></pre>
+  <p>
+    Implicit concurrency, 
+    easy composibility,
+    less prone to bugs,
+    code almost like always.
+  </p>
+</div>
+
+<div id="syntax" class="step slide with-brackets master-title-2rows"
+     data-off-ref="title"
+     data-off-scale="1.5"
+     data-off-x=" 1500" 
+     data-off-y=" 1000" 
+     >
+  <div class="title"><div><div>
+    <h1>Promises Syntax</h1>
+  </div></div></div>
+  <div class="row top"><div><div>
+  </div></div></div>
+  <div class="row top"><div><div>
+  </div></div></div>
+</div>
+
+<div class="step slide master-title-1rows"
+     data-off-ref="syntax"
+     data-off-scale="0.2"
+     data-off-x="-1200"
+     data-off-y="-200">
+  <div class="title"><div><div>
+    <h1>Create a promise</h1>    
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+function getFacebookApp() {
+  var deferred = Q.defer();
+  req.facebook.app(function(err, app) {
+    if (err) {
+      deferred.reject(err);
+    } else {
+      deferred.resolve(app);
+    }
+  });
+  return deferred.promise;
+}
+// there are lots of already coded wappers
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-1rows"
+     data-off-x=" 2400">
+  <div class="title"><div><div>
+    <h1>Chain promises</h1>    
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">      
+var user = getUserWithPromise(me);
+var name = user.then(function (user) {
+  return user.name;
+});
+var length = name.then(function (name) {
+  return name.length;
+});
+// each then returns a new promise
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-1rows"
+     data-off-x="-2400"
+     data-off-y="1000">
+  <div class="title"><div><div>
+    <h1>Compose promises</h1>    
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+var app = getFacebookApp();
+var me  = getFacebookMe();
+var appAndMe = Q.all([app, me]);
+meAndApp.then(function (appAndMe) {
+  doSomething(appAndMe);
+});
+// check for .spread instead of then
+    </code></pre>
+  </div></div></div>
+</div>
+<div class="step slide master-title-1rows"
+     data-off-x=" 2400">
+  <div class="title"><div><div>
+    <h1>Exception bubbling</h1>    
+  </div></div></div>
+  <div class="row"><div><div>
+    <pre class="prettyprint"><code class="language-javascript">
+var user = getUserWithPromise(me);
+var name = user.then(function (user) {
+  return user.name;
+});
+name.then(function(name) {
+  doSomething(name);
+}).catch(function(err) {
+  // also triggered if user fails
+  handle(err);
+}).finally(function() {
+  tidyUp();
+});
+    </code></pre>
+  </div></div></div>
+</div>
+
+<div id="resources" class="step slide with-bracket-top master-title-2rows"
+     data-off-ref="syntax"
+     data-off-y=" 1000" 
+     >
+  <div class="title"><div><div>
+    <h1>Resources</h1>
+  </div></div></div>
+  <div class="row top"><div><div>
+  </div></div></div>
+  <div class="row top"><div><div>
+  </div></div></div>
+</div>
+
+<div class="step slide master-title-bullets"
+     data-off-ref="resources"
+     data-off-scale="0.4"
+     data-off-x="-600"
+     data-off-y="0">
+  <div class="title"><div><div>
+    <h1>Q<br>
+      <small><small>Kris Kowal promises</small></small>
+    </h1>
+  </div></div></div>
+  <div class="large bullets"><div><div>
+    <ul>
+      <li><a href="https://github.com/kriskowal/q">https://github.com/kriskowal/q</a></li>
+      <li>Lot's of tools</li>
+      <li>Consume promises from jQuery</li>
+      <li>Lot's of wrapper for nodejs...</li>
+    </ul>
+  </div></div></div>
+</div>
+
+
+<div class="step slide master-title-bullets"
+     data-off-x="1200"
+     data-off-y="0">
+  <div class="title"><div><div>
+    <h1>$q<br>
+      <small><small>AngularJS promises</small></small>
+    </h1>
+  </div></div></div>
+  <div class="large bullets"><div><div>
+    <ul>
+      <li><a href="http://docs.angularjs.org/api/ng.$q">http://docs.angularjs.org/api/ng.$q</a></li>
+      <li>Inspired in Kris Kowal promises</li>
+      <li>Implements minimum expected functionalities</li>
+      <li>Fully integrated in AngularJS expressions:
+        <ul>
+          <li>you can use them directly in expressions {{promise}}</li>
+          <li>view loading synchronizes with promises</li>
+        </ul>
+      </li>
+    </ul>
+  </div></div></div>
+</div>
+
+    </div><!-- end #impress -->
+
+    <script src="components.js"></script>
+    <script src="scripts.js"></script>    
+
+  </body>
+</html>
