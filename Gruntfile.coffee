@@ -22,7 +22,7 @@ module.exports = (grunt) ->
         'build/scripts.js': [
           'src/scripts/livereload-run.js'
           'src/scripts/lang-*.js'
-          'src/scripts/diagram-run.js'
+#          'src/scripts/diagram-run.js'
           'src/scripts/prettify-run.js'
           'src/scripts/offsets-run.js'
           'src/scripts/impress-run.js'
@@ -36,9 +36,9 @@ module.exports = (grunt) ->
           'components/google-code-prettify/src/prettify.js'
           'components/google-code-prettify/src/lang*.js'
           'components/jquery/jquery.js'
-          'components/raphael/raphael.js'
-          'components/underscore/underscore.js'
-          'components/js-sequence-diagrams/build/sequence-diagram-min.js'
+#          'components/raphael/raphael.js'
+#          'components/underscore/underscore.js'
+#          'components/js-sequence-diagrams/build/sequence-diagram-min.js'
           ]
         'build/components.css': [
           'components/normalize-css/normalize.css'
