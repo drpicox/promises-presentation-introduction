@@ -113,11 +113,6 @@ PR['registerLangHandler'](
 
 } catch (err) {}
 
-(function($) {
-    $(".diagram:not(.hand)").sequenceDiagram({theme: 'simple'});
-    $(".diagram.hand").sequenceDiagram({theme: 'hand'});
-})(jQuery);
-
 (function(prettyPrint) {
     prettyPrint();
     $(".prettyprint").addClass("prettify");
