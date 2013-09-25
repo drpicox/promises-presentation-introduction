@@ -1,7 +1,7 @@
-# Introduction to GruntJS Presentation
+# Introduction to Promises
 
 This project is a static web page for
-the presentation to introduce GruntJS.
+the presentation to introduce Promises.
 
 This presentation uses impress.js to 
 make a prezi like presentation. 
